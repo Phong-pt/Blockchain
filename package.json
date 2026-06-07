@@ -1,0 +1,23 @@
+{
+  "name": "nft-marketplace-fractional-royalties",
+  "version": "0.1.0",
+  "description": "NFT Marketplace with Fractional Royalties (EIP-2981 multi-receiver + Pull-payment splitter + Atomic swap)",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "coverage": "hardhat coverage",
+    "node": "hardhat node",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "seed:local": "hardhat run scripts/seed.js --network localhost",
+    "serve": "npx -y serve ./frontend -l 3000",
+    "clean": "hardhat clean"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.10"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2",
+    "dotenv": "^16.4.5"
+  }
+}

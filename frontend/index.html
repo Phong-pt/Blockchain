@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FRNFT — NFT Marketplace with Fractional Royalties</title>
+  <meta name="description" content="NFT Marketplace hỗ trợ Fractional Royalties (EIP-2981 multi-receiver), Pull-payment splitter, và Atomic swap." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💎</text></svg>" />
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- ========== NAVBAR ========== -->
+    <nav class="navbar" id="navbar">
+      <div class="container">
+        <div class="nav-brand">
+          <div class="brand-icon">💎</div>
+          FRNFT
+        </div>
+        <ul class="nav-links" id="nav-links">
+          <li><a href="#" class="active" data-page="marketplace">Marketplace</a></li>
+          <li><a href="#" data-page="my-nfts">My NFTs</a></li>
+          <li><a href="#" data-page="mint">Mint</a></li>
+          <li><a href="#" data-page="withdraw">Withdraw</a></li>
+        </ul>
+        <button class="btn-wallet" id="btn-connect-wallet" onclick="connectWallet()">
+          <span class="wallet-dot"></span>
+          <span id="wallet-label">Connect Wallet</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- ========== HERO ========== -->
+    <section class="hero" id="hero-section">
+      <div class="container">
+        <h1>
+          NFT Marketplace<br />
+          with <span class="gradient-text">Fractional Royalties</span>
+        </h1>
+        <p>Mua bán NFT với royalty chia sẻ cho nhiều stakeholder. Atomic swap đảm bảo an toàn. Pull-payment chống DoS.</p>
+
+        <div class="stats-bar" id="stats-bar">
+          <div class="stat-item">
+            <div class="stat-value" id="stat-total-nfts">—</div>
+            <div class="stat-label">Total NFTs</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="stat-listed">—</div>
+            <div class="stat-label">Listed</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="stat-fee">2.5%</div>
+            <div class="stat-label">Market Fee</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="stat-network">—</div>
+            <div class="stat-label">Network</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <main class="container">
+      <!-- ===== MARKETPLACE PAGE ===== -->
+      <div class="page active" id="page-marketplace">
+        <div class="section-header">
+          <h2 class="section-title">🏪 Marketplace</h2>
+          <div class="network-badge" id="network-badge" style="display:none">
+            <span class="dot"></span>
+            <span id="network-name">Localhost</span>
+          </div>
+        </div>
+        <div class="card-grid" id="marketplace-grid">
+          <div class="empty-state">
+            <div class="empty-icon">🏪</div>
+            <h3>No NFTs listed yet</h3>
+            <p>Connect your wallet and mint an NFT to get started!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== MY NFTS PAGE ===== -->
+      <div class="page" id="page-my-nfts">
+        <div class="section-header">
+          <h2 class="section-title">🎨 My NFTs</h2>
+        </div>
+        <div class="card-grid" id="my-nfts-grid">
+          <div class="empty-state">
+            <div class="empty-icon">🎨</div>
+            <h3>No NFTs found</h3>
+            <p>Connect wallet to see your NFTs or mint new ones.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== MINT PAGE ===== -->
+      <div class="page" id="page-mint">
+        <div class="section-header">
+          <h2 class="section-title">✨ Mint NFT with Fractional Royalties</h2>
+        </div>
+        <div class="two-col">
+          <div class="glass-panel">
+            <div class="form-group">
+              <label class="form-label" for="mint-to">Mint To (Address)</label>
+              <input type="text" class="form-input" id="mint-to" placeholder="0x..." />
+              <p class="form-help">Để trống sẽ tự dùng ví đang kết nối.</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="mint-uri">Token URI</label>
+              <input type="text" class="form-input" id="mint-uri" placeholder="ipfs://... hoặc https://..." />
+              <p class="form-help">Link tới metadata JSON (name, description, image).</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="mint-royalty-bps">Royalty % (trên giá bán)</label>
+              <input type="number" class="form-input" id="mint-royalty-bps" placeholder="500" min="0" max="1000" step="50" value="500" />
+              <p class="form-help">Bps: 100 = 1%, 500 = 5%, 1000 = 10% (tối đa).</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Royalty Shares (tổng = 10000 bps = 100%)</label>
+              <div class="shares-list" id="shares-list">
+                <div class="share-row">
+                  <input type="text" class="form-input" placeholder="0x... receiver" data-share-addr />
+                  <input type="number" class="form-input share-bps" placeholder="bps" data-share-bps value="10000" />
+                  <button class="btn btn-danger btn-sm" onclick="removeShareRow(this)" title="Remove">✕</button>
+                </div>
+              </div>
+              <button class="btn-add-share" onclick="addShareRow()">+ Add Receiver</button>
+              <p class="form-help mt-sm">Mỗi receiver nhận 1 phần theo bps. Tổng tất cả share phải = 10000.</p>
+            </div>
+            <button class="btn btn-primary btn-lg btn-full" id="btn-mint" onclick="mintNFT()">
+              ✨ Mint NFT
+            </button>
+          </div>
+
+          <div class="glass-panel">
+            <h3 style="margin-bottom: var(--space-lg);">📖 Hướng dẫn</h3>
+            <div style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.8;">
+              <p><strong style="color: var(--text-primary);">1. Token URI</strong> — Link tới file metadata JSON chứa thông tin NFT (name, description, image). Có thể dùng IPFS hoặc HTTP.</p>
+              <br/>
+              <p><strong style="color: var(--text-primary);">2. Royalty %</strong> — Phần trăm trích từ giá bán cho royalty receivers. Ví dụ: 500 bps = 5%.</p>
+              <br/>
+              <p><strong style="color: var(--text-primary);">3. Royalty Shares</strong> — Chia royalty cho nhiều người. Mỗi người có 1 tỉ lệ (bps). Tổng tất cả shares phải bằng 10000 (100%).</p>
+              <br/>
+              <p><strong style="color: var(--text-primary);">Ví dụ:</strong></p>
+              <p>Royalty = 5% (500 bps)</p>
+              <p>Share 1: Artist — 7000 bps (70% của royalty)</p>
+              <p>Share 2: Collaborator — 3000 bps (30%)</p>
+              <p>→ Nếu NFT bán 1 ETH, royalty = 0.05 ETH. Artist nhận 0.035 ETH, Collaborator nhận 0.015 ETH.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== WITHDRAW PAGE ===== -->
+      <div class="page" id="page-withdraw">
+        <div class="section-header">
+          <h2 class="section-title">💰 Withdraw Earnings</h2>
+        </div>
+        <div class="withdraw-panel" id="withdraw-panel">
+          <div>
+            <div class="balance-label">Your claimable balance</div>
+            <div class="balance-value" id="withdraw-balance">— ETH</div>
+          </div>
+          <button class="btn btn-success btn-lg" id="btn-withdraw" onclick="withdrawFunds()">
+            💰 Withdraw All
+          </button>
+        </div>
+        <div class="glass-panel mt-lg" style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.8;">
+          <h3 style="color: var(--text-primary); margin-bottom: var(--space-md);">ℹ️ Pull-Payment Pattern</h3>
+          <p>Khi NFT được bán, tiền sẽ được ghi credit vào <strong style="color: var(--accent-secondary)">PullPaymentSplitter</strong> contract. Bạn cần tự gọi <code>withdraw()</code> để rút tiền.</p>
+          <br/>
+          <p>Lợi ích: Nếu một receiver là contract lỗi (revert), nó không ảnh hưởng giao dịch mua bán. Mỗi người tự rút tiền riêng.</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="app-footer">
+      <div class="container">
+        FRNFT Marketplace — Fractional Royalties · EIP-2981 · Atomic Swap · Pull Payment
+      </div>
+    </footer>
+  </div>
+
+  <!-- ========== DETAIL MODAL ========== -->
+  <div class="modal-overlay" id="modal-detail">
+    <div class="modal" style="max-width: 720px;">
+      <div class="modal-header">
+        <h2 id="detail-modal-title">NFT Detail</h2>
+        <button class="modal-close" onclick="closeDetailModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-grid" id="detail-content">
+          <!-- populated by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== LIST MODAL ========== -->
+  <div class="modal-overlay" id="modal-list">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📋 List NFT for Sale</h2>
+        <button class="modal-close" onclick="closeListModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="list-price">Price (ETH)</label>
+          <input type="number" class="form-input" id="list-price" placeholder="0.1" step="0.001" min="0.000001" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeListModal()">Cancel</button>
+        <button class="btn btn-primary" id="btn-confirm-list" onclick="confirmList()">Confirm Listing</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TOAST CONTAINER ========== -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ========== SCRIPTS ========== -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

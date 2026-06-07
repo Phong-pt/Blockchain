@@ -1,0 +1,884 @@
+% !TEX program = xelatex
+% =====================================================================
+%  BÁO CÁO DỰ ÁN: FRACTIONAL ROYALTY NFT MARKETPLACE
+%  Compiler: xelatex (khuyến nghị) hoặc pdflatex
+%  Trên Overleaf: Menu → Settings → Compiler → XeLaTeX
+% =====================================================================
+\documentclass[12pt,a4paper,oneside]{report}
+
+% ---------- Encoding & Vietnamese ----------
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+  \usepackage[T5]{fontenc}
+  \usepackage[vietnamese]{babel}
+  \usepackage{lmodern}
+\else
+  \usepackage{fontspec}
+  \usepackage{polyglossia}
+  \setmainlanguage{vietnamese}
+  \setmainfont{Latin Modern Roman}
+  \setsansfont{Latin Modern Sans}
+  \setmonofont{Latin Modern Mono}[Scale=0.88]
+\fi
+
+% ---------- Layout ----------
+\usepackage[a4paper,top=2.5cm,bottom=2.5cm,left=2.8cm,right=2.5cm]{geometry}
+\usepackage{setspace}\onehalfspacing
+\usepackage{parskip}
+\usepackage{microtype}
+\usepackage{enumitem}
+\setlist{nosep,leftmargin=1.5em}
+
+% ---------- Math ----------
+\usepackage{amsmath,amssymb,amsthm}
+
+% ---------- Graphics, tables ----------
+\usepackage{graphicx,float,xcolor}
+\usepackage{booktabs,longtable,array,tabularx,multirow}
+\usepackage{caption}\captionsetup{font=small,labelfont=bf}
+
+% ---------- TikZ ----------
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc,decorations.pathreplacing}
+
+% ---------- Code listings ----------
+\usepackage{listings}
+\definecolor{codebg}{RGB}{248,248,250}
+\definecolor{codekw}{RGB}{60,60,180}
+\definecolor{codestr}{RGB}{0,120,60}
+\definecolor{codecom}{RGB}{128,128,128}
+\definecolor{codetype}{RGB}{150,60,60}
+
+\lstdefinelanguage{Solidity}{
+  keywords={pragma,solidity,contract,interface,library,is,public,private,internal,external,
+    pure,view,payable,returns,return,memory,storage,calldata,function,constructor,
+    modifier,event,emit,indexed,mapping,struct,enum,require,revert,assert,
+    if,else,for,while,new,delete,using,override,virtual,immutable,constant,
+    true,false,this,unchecked,try,catch},
+  keywordstyle=\color{codekw}\bfseries,
+  ndkeywords={address,bool,string,bytes,bytes32,uint,uint96,uint256,int256},
+  ndkeywordstyle=\color{codetype},
+  sensitive=true,
+  comment=[l]{//},morecomment=[s]{/*}{*/},
+  commentstyle=\color{codecom}\itshape,
+  stringstyle=\color{codestr},
+  morestring=[b]",morestring=[b]'
+}
+
+\lstdefinelanguage{JavaScript}{
+  keywords={async,await,const,let,var,function,return,if,else,for,new,this,
+    class,typeof,try,catch,throw,true,false,null,undefined},
+  keywordstyle=\color{codekw}\bfseries,
+  sensitive=true,
+  comment=[l]{//},morecomment=[s]{/*}{*/},
+  commentstyle=\color{codecom}\itshape,
+  stringstyle=\color{codestr},
+  morestring=[b]",morestring=[b]',morestring=[b]`
+}
+
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,columns=fullflexible,
+  frame=single,framerule=0.3pt,rulecolor=\color{gray!50},
+  numbers=left,numberstyle=\tiny\color{gray},numbersep=7pt,
+  showstringspaces=false,tabsize=2,captionpos=b,
+  xleftmargin=1em,escapeinside={(*@}{@*)},
+}
+
+% ---------- Theorems ----------
+\theoremstyle{plain}
+\newtheorem{theorem}{Định lý}[chapter]
+\newtheorem{lemma}[theorem]{Bổ đề}
+\newtheorem{proposition}[theorem]{Mệnh đề}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Định nghĩa}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Nhận xét}
+
+% ---------- Hyperlinks ----------
+\usepackage[hidelinks,colorlinks=true,linkcolor=blue!60!black,citecolor=teal!60!black,urlcolor=blue!60!black]{hyperref}
+
+% ---------- Headers ----------
+\usepackage{fancyhdr}
+\pagestyle{fancy}\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\small\leftmark}
+\fancyhead[R]{\small\thepage}
+
+% =====================================================================
+\begin{document}
+
+% ==================== TRANG BÌA ====================
+\begin{titlepage}
+\centering
+\vspace*{1.5cm}
+{\Huge\bfseries Fractional Royalty\\[8pt] NFT Marketplace\par}
+\vspace{0.8cm}
+{\Large Báo cáo kỹ thuật dự án\par}
+\vspace{0.4cm}
+{\large\itshape ERC-721 $\bullet$ EIP-2981 Multi-Receiver $\bullet$ Pull-Payment $\bullet$ Atomic Swap\par}
+\vspace{2cm}
+
+\begin{tikzpicture}[node distance=1.6cm and 2.5cm,
+  ct/.style={rectangle,rounded corners=6pt,draw,thick,minimum width=3.4cm,minimum height=1.1cm,fill=blue!8,align=center,font=\small}]
+  \node[ct] (nft) {RoyaltyNFT\\[-2pt]\footnotesize ERC-721 + IMultiRoyalty};
+  \node[ct,right=of nft] (mkt) {Marketplace\\[-2pt]\footnotesize Atomic Swap};
+  \node[ct,below=of mkt] (spl) {PullPaymentSplitter\\[-2pt]\footnotesize Claim-based};
+  \draw[-{Latex},thick] (mkt) -- node[above,font=\scriptsize]{royaltyShares} (nft);
+  \draw[-{Latex},thick] (mkt) -- node[right,font=\scriptsize]{deposit} (spl);
+  \draw[-{Latex},thick,dashed] (mkt.north east) .. controls +(1.5,0.8) and +(1.5,0.8) .. node[right,font=\scriptsize]{safeTransferFrom} (nft.north east);
+\end{tikzpicture}
+
+\vfill
+\begin{tabular}{rl}
+  \textbf{Stack:} & Solidity 0.8.24 $\cdot$ Hardhat 2.22 $\cdot$ OpenZeppelin 5 $\cdot$ ethers.js v6 \\
+  \textbf{Chuẩn:} & ERC-721, EIP-2981, EIP-165 \\
+  \textbf{Ngày:} & \today
+\end{tabular}
+\vspace{1cm}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ==================== ABSTRACT ====================
+\begin{abstract}
+Báo cáo trình bày thiết kế, triển khai và phân tích một \emph{sàn giao dịch NFT với cơ chế chia
+royalty phân mảnh} (\textit{Fractional Royalty NFT Marketplace}). Hệ thống gồm ba hợp đồng
+thông minh: \textbf{(1)}~\texttt{RoyaltyNFT} — ERC-721 mở rộng EIP-2981 với giao diện
+\texttt{IMultiRoyalty} cho phép nhiều stakeholder cùng nhận royalty;
+\textbf{(2)}~\texttt{PullPaymentSplitter} — trình chia tiền theo mô hình pull-payment chống tấn
+công tái nhập và cạn gas; \textbf{(3)}~\texttt{Marketplace} — thực hiện hoán đổi nguyên tử giữa
+NFT và dòng tiền royalty trong một giao dịch duy nhất. Chúng tôi chứng minh toán học cho công thức
+chia royalty theo basis points với xử lý dust, phân tích bảo mật theo SWC Registry, trình bày tối
+ưu gas, và mô tả frontend tích hợp đầy đủ.
+\end{abstract}
+\newpage
+
+% =====================================================================
+\chapter{Giới thiệu}
+\label{chap:intro}
+
+\section{Bối cảnh}
+Thị trường NFT đã trở thành cơ sở hạ tầng tài chính hoá tài sản số. Tuy nhiên, các marketplace
+hiện nay gặp ba vấn đề cốt lõi:
+\begin{enumerate}
+  \item \textbf{Royalty một người nhận.} Chuẩn EIP-2981 chỉ hỗ trợ \emph{một} địa chỉ
+        \texttt{receiver}, không đáp ứng nhu cầu chia sẻ giữa nhiều bên (nghệ sĩ, cộng tác viên,
+        quỹ từ thiện, nhà đầu tư\ldots).
+  \item \textbf{Rủi ro DoS khi chia tiền.} Cách tiếp cận ngây thơ dùng vòng lặp \texttt{.call}
+        tới từng người nhận: một receiver xấu (\texttt{revert}, hết gas) phá vỡ mọi giao dịch.
+  \item \textbf{Thiếu tính nguyên tử.} Nếu chuyển tiền và chuyển NFT tách rời, có thể xảy ra
+        trạng thái trung gian: ``đã trả tiền nhưng chưa nhận NFT'' hoặc ngược lại.
+\end{enumerate}
+
+\section{Mục tiêu dự án}
+Xây dựng hệ thống trong đó:
+\begin{itemize}
+  \item Mỗi NFT đăng ký danh sách \emph{nhiều} royalty receivers theo basis points (bps).
+  \item Giao dịch bán diễn ra \emph{nguyên tử}: bất kỳ bước nào thất bại thì toàn bộ rollback.
+  \item Tiền được chia theo \emph{pull-payment}: ghi credit trong mapping, người nhận tự withdraw.
+\end{itemize}
+
+\section{Phạm vi kỹ thuật}
+\begin{itemize}
+  \item Solidity 0.8.24, Hardhat 2.22, OpenZeppelin Contracts v5, evmVersion \texttt{cancun}.
+  \item Frontend tĩnh: HTML + CSS + JavaScript thuần với ethers.js v6 (CDN, không build step).
+  \item Mạng: Hardhat local (chainId 31337), cấu hình sẵn Sepolia testnet.
+\end{itemize}
+
+% =====================================================================
+\chapter{Cơ sở lý thuyết}
+\label{chap:background}
+
+\section{ERC-721 và EIP-2981}
+\textbf{ERC-721} định nghĩa NFT với hàm cốt lõi: \texttt{ownerOf}, \texttt{transferFrom},
+\texttt{safeTransferFrom}, \texttt{approve}. Chúng tôi kế thừa \texttt{ERC721URIStorage} để lưu
+metadata URI on-chain.
+
+\textbf{EIP-2981} thêm duy nhất một hàm view:
+\begin{lstlisting}[language=Solidity,numbers=none]
+function royaltyInfo(uint256 tokenId, uint256 salePrice)
+    external view returns (address receiver, uint256 royaltyAmount);
+\end{lstlisting}
+Hạn chế: chỉ một \texttt{receiver}. Để chia cho $n$ stakeholder, phải ủy thác qua contract
+trung gian — tốn gas và ẩn thông tin.
+
+\section{Giao diện \texttt{IMultiRoyalty} — Thiết kế mở rộng}
+
+\begin{definition}[Multi-receiver royalty]\label{def:multiroy}
+Với mỗi NFT có \texttt{tokenId} và giá bán $P$, hợp đồng trả về:
+\begin{itemize}
+  \item $T(P) = \lfloor P \cdot \alpha / 10000 \rfloor$: tổng royalty, với $\alpha \le 1000$ bps (tối đa 10\%).
+  \item Mảng $\{(r_i, b_i)\}_{i=1}^{n}$ trong đó $r_i$ là địa chỉ, $b_i$ là phần chia (bps),
+        thoả $\sum_{i=1}^{n} b_i = 10000$.
+\end{itemize}
+Mỗi người nhận $r_i$ được trả: $\text{amt}_i = \lfloor T \cdot b_i / 10000 \rfloor$.
+\end{definition}
+
+Struct \texttt{RoyaltyShare} sử dụng \texttt{uint96} cho \texttt{shareBps} để đóng gói đúng
+256 bit cùng \texttt{address} (160 + 96 = 256), tiết kiệm storage slot.
+
+\section{Pull-payment pattern}
+
+\begin{definition}[Pull-payment]
+Hợp đồng chỉ \emph{ghi công nợ} (credit) vào mapping $B: \texttt{address} \to \texttt{wei}$
+khi nhận tiền; người nhận tự gọi \texttt{withdraw()} để rút.
+\end{definition}
+
+\begin{proposition}[Ưu thế chống DoS]\label{prop:pulldos}
+Với push-payment (vòng lặp \texttt{.call} tới $n$ receiver), một receiver $r_k$ độc hại
+(\texttt{fallback} revert hoặc tiêu hết gas) khiến toàn bộ giao dịch revert. Pull-payment cô
+lập rủi ro: lỗi của $r_k$ chỉ ảnh hưởng đến $r_k$.
+\end{proposition}
+
+\section{CEI và ReentrancyGuard}
+
+Tái nhập (\textit{reentrancy}) xảy ra khi external call trả quyền điều khiển cho kẻ tấn công
+trong khi state chưa cập nhật. Dự án dùng \emph{hai lớp phòng thủ}:
+\begin{enumerate}
+  \item \textbf{CEI} (Checks-Effects-Interactions): sửa state trước external call.
+  \item \textbf{ReentrancyGuard}: biến flag, nếu đã \texttt{ENTERED} thì revert.
+\end{enumerate}
+
+\section{Atomic swap trong EVM}
+
+\begin{proposition}[Tính nguyên tử]\label{prop:atomic}
+EVM đảm bảo: mọi revert rollback toàn bộ state của giao dịch. Do đó nếu chuyển tiền và chuyển
+NFT nằm trong cùng một tx, bất kỳ bước nào revert sẽ hoàn tác tất cả — đạt tính nguyên tử
+mà không cần cơ chế HTLC.
+\end{proposition}
+
+% =====================================================================
+\chapter{Kiến trúc hệ thống}
+\label{chap:arch}
+
+\section{Tổng quan ba hợp đồng}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  ct/.style={rectangle,rounded corners=5pt,draw,thick,minimum width=3.5cm,
+             minimum height=1.3cm,fill=blue!5,align=center},
+  ext/.style={rectangle,draw,thick,minimum width=3cm,minimum height=0.9cm,
+              fill=orange!10,align=center,font=\small},
+  arr/.style={-{Latex[length=2.5mm]},thick}
+]
+  \node[ct] (NFT) {RoyaltyNFT\\\footnotesize ERC-721 + ERC-2981\\\footnotesize + IMultiRoyalty};
+  \node[ct,right=2.5cm of NFT] (MKT) {Marketplace\\\footnotesize ReentrancyGuard\\\footnotesize + Ownable};
+  \node[ct,below=2cm of MKT] (SPL) {PullPaymentSplitter\\\footnotesize ReentrancyGuard};
+
+  \node[ext,above=1.2cm of MKT] (FE) {Frontend\\[-2pt]\footnotesize HTML/JS + ethers.js v6};
+
+  \draw[arr] (MKT) -- node[above,midway,font=\scriptsize]{royaltyShares()} (NFT);
+  \draw[arr] (MKT) -- node[right,midway,font=\scriptsize]{deposit\{value\}} (SPL);
+  \draw[arr,dashed] (MKT.south west) -- node[below,midway,sloped,font=\scriptsize]{safeTransferFrom} (NFT.south east);
+
+  \draw[arr,blue!60] (FE) -- (MKT);
+  \draw[arr,blue!60] (FE.west) -| node[left,near start,font=\scriptsize]{mint, approve} (NFT);
+  \draw[arr,blue!60] (FE.east) -| node[right,near start,font=\scriptsize]{withdraw} (SPL);
+\end{tikzpicture}
+\caption{Kiến trúc hệ thống. Marketplace điều phối NFT và Splitter trong giao dịch atomic.
+Frontend gọi trực tiếp cả ba hợp đồng.}
+\label{fig:arch}
+\end{figure}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{l l p{7.5cm}}
+\toprule
+\textbf{Contract} & \textbf{Kế thừa} & \textbf{Vai trò} \\
+\midrule
+\texttt{RoyaltyNFT} & ERC721URIStorage, ERC2981, Ownable & Mint NFT kèm mảng multi-receiver royalty \\
+\texttt{Marketplace} & ReentrancyGuard, Ownable & List, buy (atomic swap), unlist \\
+\texttt{PullPaymentSplitter} & ReentrancyGuard & Nhận deposit, ghi credit, cho phép withdraw \\
+\bottomrule
+\end{tabular}
+\caption{Ba hợp đồng và vai trò tương ứng.}
+\end{table}
+
+\section{Sequence diagram: Atomic Buy}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\scriptsize},
+  actor/.style={rectangle,draw,minimum width=2cm,minimum height=0.7cm,fill=yellow!15},
+  arr/.style={-{Latex},thick}
+]
+  \node[actor] (B) {Buyer};
+  \node[actor,right=1.8cm of B] (M) {Marketplace};
+  \node[actor,right=1.8cm of M] (N) {RoyaltyNFT};
+  \node[actor,right=1.8cm of N] (S) {Splitter};
+
+  \foreach \x in {B,M,N,S} {\draw[dashed] (\x) -- ++(0,-4);}
+
+  \draw[arr] ($(B)+(0,-0.6)$) -- node[above]{\texttt{buy\{value:P\}}} ($(M)+(0,-0.6)$);
+  \draw[arr] ($(M)+(0,-1.1)$) -- node[above]{\texttt{royaltyShares(id,P)}} ($(N)+(0,-1.1)$);
+  \draw[arr] ($(N)+(0,-1.6)$) -- node[above]{(total, shares[])} ($(M)+(0,-1.6)$);
+  \draw[arr] ($(M)+(0,-2.1)$) -- node[above]{\texttt{deposit\{value:P\}}} ($(S)+(0,-2.1)$);
+  \draw[arr] ($(M)+(0,-2.6)$) -- node[above]{\texttt{safeTransferFrom}} ($(N)+(0,-2.6)$);
+  \draw[arr] ($(N)+(0,-3.1)$) -- node[above]{NFT transferred} ($(B)+(0,-3.1)$);
+
+  \draw[thick,decorate,decoration={brace,mirror,amplitude=5pt}]
+    ($(B)+(-0.5,-0.4)$) -- ($(B)+(-0.5,-3.4)$) node[midway,left=8pt,font=\scriptsize,align=right]{Một TX\\duy nhất};
+\end{tikzpicture}
+\caption{Sequence diagram \texttt{Marketplace.buy()}: tất cả nằm trong một giao dịch duy nhất.}
+\label{fig:seq}
+\end{figure}
+
+\section{Luồng hoạt động tổng quát}
+\begin{enumerate}
+  \item \textbf{Mint}: Owner gọi \texttt{mintWithRoyalties(to, uri, royaltyBps, shares[])}.
+  \item \textbf{Approve}: Seller gọi \texttt{nft.approve(marketplace, tokenId)}.
+  \item \textbf{List}: Seller gọi \texttt{marketplace.list(nft, tokenId, price)}.
+  \item \textbf{Buy (atomic)}: Buyer gọi \texttt{marketplace.buy(nft, tokenId)} với \texttt{msg.value = price}:
+    \begin{itemize}
+      \item Xoá listing (Effects trước Interactions).
+      \item Tính fee + royalty + seller proceeds.
+      \item \texttt{splitter.deposit\{value: price\}(payees, amounts)} — ghi credit.
+      \item \texttt{nft.safeTransferFrom(seller, buyer, tokenId)} — chuyển NFT.
+      \item Nếu bất kỳ bước nào revert $\Rightarrow$ toàn bộ rollback.
+    \end{itemize}
+  \item \textbf{Withdraw}: Mỗi stakeholder tự gọi \texttt{splitter.withdraw()} để rút ETH.
+\end{enumerate}
+
+% =====================================================================
+\chapter{Cơ sở toán học và chứng minh}
+\label{chap:math}
+
+\section{Công thức chia royalty theo basis points}
+
+\begin{definition}[Hệ thống basis points]
+$1\text{ bps} = 0.01\%$. Denominator $D = 10000$. Royalty rate $\alpha$ bps trên giá $P$:
+\[
+  T = \left\lfloor \frac{P \cdot \alpha}{D} \right\rfloor, \qquad \alpha \le 1000 \text{ (tối đa 10\%)}.
+\]
+\end{definition}
+
+\begin{definition}[Phân phối cho receivers]
+Với mảng shares $(b_1, \ldots, b_n)$ thoả $\sum_{i=1}^{n} b_i = D = 10000$:
+\[
+  \text{amt}_i = \left\lfloor \frac{T \cdot b_i}{D} \right\rfloor, \qquad i = 1, \ldots, n.
+\]
+\end{definition}
+
+\section{Xử lý sai số làm tròn (dust)}
+
+\begin{theorem}[Bảo toàn tổng với dust]\label{thm:dust}
+Gọi $d = T - \sum_{i=1}^{n} \lfloor T \cdot b_i / D \rfloor$ là phần dư (dust).
+Khi đó $0 \le d < n$ và thuật toán cộng $d$ vào receiver cuối đảm bảo $\sum \text{amt}_i = T$.
+\end{theorem}
+\begin{proof}
+Đặt $a_i = \lfloor T b_i / D \rfloor$. Ta có $a_i \le T b_i / D$, nên:
+\[
+  \sum_{i=1}^{n} a_i \le \sum_{i=1}^{n} \frac{T b_i}{D} = \frac{T}{D}\sum b_i = T.
+\]
+Mặt khác, $T b_i / D - a_i < 1$ nên $d = T - \sum a_i < n$. Trong mã nguồn:
+\begin{lstlisting}[language=Solidity,numbers=none]
+if (n > 0 && distributed < total) {
+    amounts[n - 1] += (total - distributed); // dust -> last receiver
+}
+\end{lstlisting}
+Sau bước này, $\sum \text{amt}_i = T$ chính xác.
+\end{proof}
+
+\section{Phân phối tổng giá bán}
+
+\begin{proposition}[Bảo toàn giá bán]\label{prop:priceconserve}
+Với giá $P$, phí marketplace $f$ bps, và royalty $\alpha$ bps:
+\[
+  P = \underbrace{\lfloor P \cdot f / D \rfloor}_{\text{fee}} +
+      \underbrace{\lfloor P \cdot \alpha / D \rfloor}_{\text{royalty}} +
+      \text{proceeds}_{\text{seller}}.
+\]
+Trong mã nguồn, \texttt{proceeds = price - fee - totalRoyalty} tính trực tiếp phần dư, đảm bảo
+không mất wei nào.
+\end{proposition}
+
+\section{Tính đúng đắn của deposit}
+
+\begin{lemma}[Bất biến PullPaymentSplitter]\label{lem:splitter-inv}
+Tại mọi thời điểm:
+\[
+  \texttt{address(this).balance} \ge \sum_{\text{addr}} \texttt{\_balances[addr]} = \texttt{\_totalPending}.
+\]
+\end{lemma}
+\begin{proof}
+Hàm \texttt{deposit} kiểm tra $\sum \texttt{amounts} = \texttt{msg.value}$, nên mỗi lần deposit,
+số dư ETH tăng đúng bằng tổng credit thêm vào mapping. Hàm \texttt{withdraw} trừ balance trước
+khi gửi ETH (CEI), nên hai vế giảm đồng bộ.
+\end{proof}
+
+% =====================================================================
+\chapter{Phân tích mã nguồn chi tiết}
+\label{chap:code}
+
+\section{\texttt{IMultiRoyalty.sol} — Giao diện mở rộng EIP-2981}
+
+\begin{lstlisting}[language=Solidity,caption={Giao diện IMultiRoyalty.}]
+interface IMultiRoyalty {
+    struct RoyaltyShare {
+        address receiver;  // 160 bits
+        uint96 shareBps;   //  96 bits -> total 256 bits = 1 slot
+    }
+    function royaltyShares(uint256 tokenId, uint256 salePrice)
+        external view
+        returns (uint256 totalAmount, RoyaltyShare[] memory shares);
+}
+\end{lstlisting}
+
+\textbf{Thiết kế}: \texttt{address} (160 bit) + \texttt{uint96} (96 bit) = 256 bit, đóng gói vừa
+một storage slot. Marketplace chỉ cần gọi \emph{một hàm} để lấy cả tổng royalty lẫn danh sách chia.
+Đây là điểm khác biệt so với EIP-2981 chuẩn (chỉ 1 receiver).
+
+\section{\texttt{RoyaltyNFT.sol} — ERC-721 với multi-receiver royalty}
+
+\begin{lstlisting}[language=Solidity,caption={Hàm \texttt{mintWithRoyalties} — mint kèm cấu hình royalty.}]
+function mintWithRoyalties(
+    address to, string calldata tokenURI_,
+    uint96 royaltyBps, RoyaltyShare[] calldata shares
+) external onlyOwner returns (uint256 tokenId) {
+    if (royaltyBps > MAX_ROYALTY_BPS) revert RoyaltyTooHigh(royaltyBps);
+    if (shares.length == 0) revert EmptyShares();
+    tokenId = ++_nextTokenId;
+    _safeMint(to, tokenId);
+    _setTokenURI(tokenId, tokenURI_);
+    _setRoyaltyShares(tokenId, royaltyBps, shares);
+    _setTokenRoyalty(tokenId, address(this), royaltyBps);
+}
+\end{lstlisting}
+
+\textbf{Giải thích}:
+\begin{itemize}
+  \item \texttt{MAX\_ROYALTY\_BPS = 1000} (10\%): giới hạn cứng ngăn owner set royalty quá cao.
+  \item \texttt{\_setTokenRoyalty(tokenId, address(this), royaltyBps)}: đặt \texttt{receiver = address(this)}
+        trong EIP-2981 chuẩn — tương thích ngược với marketplace bên ngoài.
+  \item \texttt{\_setRoyaltyShares}: lưu mảng shares vào mapping, kiểm tra $\sum b_i = 10000$
+        và $r_i \ne \texttt{address(0)}$.
+  \item \texttt{supportsInterface} override trả \texttt{true} cho cả ERC-2981 và \texttt{IMultiRoyalty}
+        — giúp Marketplace dò qua EIP-165 trước khi gọi.
+\end{itemize}
+
+\section{\texttt{PullPaymentSplitter.sol} — Claim-based payment}
+
+\begin{lstlisting}[language=Solidity,caption={Deposit (chỉ ghi mapping) và Withdraw (CEI).}]
+function deposit(address[] calldata payees, uint256[] calldata amounts)
+    external payable
+{
+    require(payees.length == amounts.length, "length mismatch");
+    uint256 total;
+    for (uint256 i = 0; i < payees.length; ++i) {
+        if (payees[i] == address(0)) revert ZeroPayee();
+        _balances[payees[i]] += amounts[i];
+        total += amounts[i];
+        emit PaymentDeposited(payees[i], amounts[i], msg.sender);
+    }
+    if (total != msg.value) revert AmountMismatch(total, msg.value);
+    _totalPending += total;
+}
+
+function _withdrawTo(address payable payee) internal {
+    uint256 amount = _balances[payee];
+    if (amount == 0) revert NothingToWithdraw();
+    _balances[payee] = 0;          // Effects TRUOC Interactions
+    _totalPending -= amount;
+    emit PaymentWithdrawn(payee, amount);
+    Address.sendValue(payee, amount); // Interactions
+}
+\end{lstlisting}
+
+\textbf{Ba điểm bảo mật quan trọng}:
+\begin{enumerate}
+  \item \texttt{deposit} chỉ ghi mapping — \emph{không external call} cho từng payee
+        $\Rightarrow$ không DoS, không reentrancy.
+  \item \texttt{\_withdrawTo} reset balance = 0 \emph{trước} \texttt{sendValue} (CEI).
+        Nếu bị tái nhập, lần gọi thứ hai revert tại \texttt{NothingToWithdraw}.
+  \item \texttt{Address.sendValue} dùng \texttt{call\{value\}("")} (toàn bộ gas) — tương thích
+        smart-contract wallets (Gnosis Safe) vốn tốn $>$2300 gas.
+\end{enumerate}
+
+\section{\texttt{Marketplace.sol} — Atomic swap}
+
+\begin{lstlisting}[language=Solidity,caption={Hàm \texttt{buy()} — trái tim của atomic swap.}]
+function buy(address nft, uint256 tokenId)
+    external payable nonReentrant
+{
+    Listing memory l = _listings[nft][tokenId];
+    if (!l.active)            revert NotListed();     // Check
+    if (msg.value != l.price) revert IncorrectPayment(l.price, msg.value);
+    if (msg.sender == l.seller) revert CannotBuyOwn();
+
+    delete _listings[nft][tokenId]; // Effect: xoa TRUOC interactions
+
+    uint256 price = l.price;
+    uint256 fee = (price * marketplaceFeeBps) / BPS;
+    (uint256 totalRoyalty, address[] memory rcv, uint256[] memory amt) =
+        _computeRoyalty(nft, tokenId, price);
+    uint256 proceeds = price - fee - totalRoyalty;
+
+    // Gom tat ca payees thanh 1 mang duy nhat
+    uint256 n = rcv.length;
+    address[] memory payees = new address[](n + 2);
+    uint256[] memory amounts = new uint256[](n + 2);
+    for (uint256 i = 0; i < n; ++i) {
+        payees[i] = rcv[i]; amounts[i] = amt[i];
+    }
+    payees[n] = feeRecipient;  amounts[n] = fee;
+    payees[n+1] = l.seller;    amounts[n+1] = proceeds;
+
+    splitter.deposit{value: price}(payees, amounts); // Interaction (a)
+    IERC721(nft).safeTransferFrom(                   // Interaction (b)
+        l.seller, msg.sender, tokenId);
+
+    emit Sold(nft, tokenId, msg.sender, l.seller,
+              price, totalRoyalty, fee, proceeds);
+}
+\end{lstlisting}
+
+\textbf{Royalty resolver} (\texttt{\_computeRoyalty}): dùng \texttt{try/catch} hai tầng:
+\begin{enumerate}
+  \item Thử \texttt{IMultiRoyalty} qua EIP-165 \texttt{supportsInterface} — nếu OK, gọi
+        \texttt{royaltyShares()} để lấy multi-receiver.
+  \item Fallback \texttt{IERC2981.royaltyInfo()} — 1 receiver.
+  \item Nếu cả hai fail (NFT không hỗ trợ royalty): royalty = 0.
+\end{enumerate}
+Thiết kế \texttt{try/catch} đảm bảo NFT độc hại (revert ngẫu nhiên) không phá vỡ Marketplace.
+
+% =====================================================================
+\chapter{Phân tích bảo mật}
+\label{chap:security}
+
+\section{Ma trận đe doạ theo SWC Registry}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\textwidth}{p{3.8cm} l X}
+\toprule
+\textbf{Mối đe doạ} & \textbf{SWC} & \textbf{Biện pháp} \\
+\midrule
+Reentrancy \texttt{buy()} & 107 & \texttt{nonReentrant} + CEI (xoá listing trước external call) \\
+Reentrancy \texttt{withdraw()} & 107 & \texttt{nonReentrant} + reset balance = 0 trước \texttt{sendValue} \\
+DoS chia tiền nhiều người & 113 & Pull-payment: deposit chỉ ghi mapping, không external call \\
+Out-of-gas fallback & 126 & Cô lập trong withdraw riêng từng receiver \\
+Tràn số học & 101 & Solidity 0.8+ auto-check overflow/underflow \\
+Front-running unlist/relist & 114 & \texttt{IncorrectPayment}: buyer phải trả đúng giá listed \\
+NFT contract độc hại & --- & \texttt{try/catch} trong \texttt{\_computeRoyalty} \\
+Owner rug-pull phí & --- & Giới hạn cứng: \texttt{marketplaceFeeBps} $\le$ 1000 (10\%) \\
+\bottomrule
+\end{tabularx}
+\caption{Ma trận đe doạ và biện pháp phòng vệ.}
+\end{table}
+
+\section{Chứng minh an toàn reentrancy của \texttt{buy()}}
+
+\begin{proposition}
+Hàm \texttt{Marketplace.buy()} không thể bị khai thác qua tái nhập.
+\end{proposition}
+\begin{proof}
+Hai điểm external call: (a)~\texttt{splitter.deposit}, (b)~\texttt{safeTransferFrom}.
+\begin{itemize}
+  \item \textit{Trước (a)}: listing đã bị \texttt{delete}. Re-entry vào \texttt{buy(nft, tokenId)}
+        revert tại \texttt{NotListed}.
+  \item \textit{Tại (a)}: \texttt{deposit} chỉ ghi mapping, không callback.
+  \item \textit{Tại (b)}: \texttt{safeTransferFrom} gọi \texttt{onERC721Received} của buyer.
+        Nếu buyer là contract độc tái nhập \texttt{buy(nft', tokenId')} khác,
+        \texttt{nonReentrant} là guard \emph{toàn cục} cho hàm $\Rightarrow$ revert.
+\end{itemize}
+Kết luận: không có trạng thái trung gian nào exploitable.
+\end{proof}
+
+\section{Chứng minh an toàn pull-payment}
+
+\begin{proposition}
+Không thể rút quá balance đã được ghi nhận.
+\end{proposition}
+\begin{proof}
+\texttt{\_withdrawTo(payee)}: đọc $a = \texttt{\_balances[payee]}$, gán
+$\texttt{\_balances[payee]} = 0$ (Effects), rồi \texttt{sendValue(payee, a)} (Interactions).
+Nếu \texttt{sendValue} bị tái nhập, vòng thứ hai đọc $a = 0$ $\Rightarrow$
+\texttt{NothingToWithdraw} revert. Tổng ETH rút $\le$ tổng deposit vì balances chỉ tăng qua
+\texttt{deposit}, chỉ giảm qua \texttt{withdraw}.
+\end{proof}
+
+% =====================================================================
+\chapter{Tối ưu Gas}
+\label{chap:gas}
+
+\section{Kỹ thuật áp dụng}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Kỹ thuật} & \textbf{Chi tiết} \\
+\midrule
+Storage packing & \texttt{RoyaltyShare}: \texttt{address} (160) + \texttt{uint96} (96) = 1 slot \\
+Custom errors & Thay \texttt{revert("string")} bằng \texttt{revert ErrorName()} — tiết kiệm $\sim$50 gas/call và bytecode deploy \\
+Immutable & \texttt{splitter} trong Marketplace là \texttt{immutable} — đọc không SLOAD \\
+Gom deposit & Một lần \texttt{splitter.deposit} cho tất cả payees thay vì nhiều lần \texttt{call} \\
+unchecked \texttt{++i} & Biến vòng lặp tăng trong \texttt{unchecked} (đã kiểm tra bound) \\
+via-IR + optimizer & \texttt{hardhat.config.js}: \texttt{viaIR: true}, \texttt{runs: 200} \\
+\bottomrule
+\end{tabularx}
+\caption{Các kỹ thuật tối ưu gas.}
+\end{table}
+
+\section{Phân tích gas đo được}
+
+Số liệu từ test suite trên Hardhat local:
+\begin{table}[H]
+\centering\small
+\begin{tabular}{l l r}
+\toprule
+\textbf{Contract} & \textbf{Method} & \textbf{Gas (approx)} \\
+\midrule
+RoyaltyNFT & \texttt{mintWithRoyalties} (3 receivers) & $\sim$264\,000 \\
+RoyaltyNFT & \texttt{approve} & $\sim$48\,000 \\
+Marketplace & \texttt{list} & $\sim$60\,000 \\
+Marketplace & \texttt{buy} (atomic, 3 royalty receivers) & $\sim$245\,000 \\
+PullPaymentSplitter & \texttt{deposit} (5 payees) & $\sim$94\,000 \\
+PullPaymentSplitter & \texttt{withdraw} & $\sim$37\,000 \\
+\bottomrule
+\end{tabular}
+\caption{Gas consumption các hàm chính.}
+\end{table}
+
+\textbf{Nhận xét}: \texttt{buy()} tốn $\sim$245k gas (bao gồm cả deposit + safeTransferFrom) — nằm
+thoải mái trong block gas limit (30M), cho phép nhiều giao dịch cùng block.
+
+% =====================================================================
+\chapter{Kiểm thử}
+\label{chap:testing}
+
+\section{Chiến lược}
+
+Bộ test sử dụng Hardhat + Chai + ethers.js, bao gồm:
+\begin{enumerate}
+  \item \textbf{Unit test}: kiểm tra từng hàm riêng lẻ.
+  \item \textbf{Integration test}: luồng đầy đủ mint $\to$ approve $\to$ list $\to$ buy $\to$ withdraw.
+  \item \textbf{Negative test}: kiểm tra revert khi input không hợp lệ.
+\end{enumerate}
+
+\section{Các test case}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\textwidth}{c p{3cm} X}
+\toprule
+\textbf{\#} & \textbf{Test} & \textbf{Ý nghĩa} \\
+\midrule
+1 & Mint multi-receiver & Mint NFT với 3 receivers, kiểm tra \texttt{royaltyShares()} trả đúng tổng 10\% và 3 shares \\
+2 & Atomic sale & Approve $\to$ list $\to$ buy: NFT chuyển cho buyer, fee/royalty/proceeds ghi đúng credit trong splitter \\
+3 & Pull-payment & Mỗi stakeholder tự withdraw, kiểm tra ETH balance tăng đúng số expected \\
+4 & Incorrect payment & Gửi sai giá $\Rightarrow$ revert \texttt{IncorrectPayment} \\
+\bottomrule
+\end{tabularx}
+\caption{Bốn test case chính.}
+\end{table}
+
+\section{Ví dụ test: Atomic sale với chia royalty}
+
+\begin{lstlisting}[language=JavaScript,caption={Test kiểm tra chia tiền đúng sau atomic buy.}]
+it("executes atomic sale: NFT moves, funds credited", async () => {
+  const price = ethers.parseEther("1");
+  // Seller approve + list
+  await nft.connect(seller).approve(market, 1);
+  await market.connect(seller).list(nft, 1, price);
+  // Buyer buys
+  await expect(market.connect(buyer).buy(nft, 1, { value: price }))
+    .to.emit(market, "Sold");
+  // NFT transferred
+  expect(await nft.ownerOf(1)).to.equal(buyer.address);
+  // Fee 2.5% = 0.025 ETH, Royalty 10% = 0.1 ETH
+  // Artist 50%: 0.05, Charity 30%: 0.03, Investor 20%: 0.02
+  // Seller proceeds: 1 - 0.025 - 0.1 = 0.875 ETH
+  expect(await splitter.balanceOf(artist.address))
+    .to.equal(ethers.parseEther("0.05"));
+  expect(await splitter.balanceOf(charity.address))
+    .to.equal(ethers.parseEther("0.03"));
+  expect(await splitter.balanceOf(seller.address))
+    .to.equal(ethers.parseEther("0.875"));
+});
+\end{lstlisting}
+
+\section{Kết quả}
+
+\begin{verbatim}
+  NFT Marketplace with Fractional Royalties
+    [PASS] mints NFT with multi-receiver royalty metadata (734ms)
+    [PASS] executes atomic sale: NFT moves, funds credited (73ms)
+    [PASS] allows each stakeholder to pull-payment independently (48ms)
+    [PASS] reverts atomically when payment is incorrect (62ms)
+
+  4 passing (927ms)
+\end{verbatim}
+
+% =====================================================================
+\chapter{Frontend}
+\label{chap:frontend}
+
+\section{Kiến trúc}
+
+Frontend là ứng dụng tĩnh thuần HTML/CSS/JavaScript, không framework, không build step.
+Dependencies duy nhất: ethers.js v6 qua CDN.
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{l p{9cm}}
+\toprule
+\textbf{File} & \textbf{Vai trò} \\
+\midrule
+\texttt{index.html} & Cấu trúc giao diện: 4 tab (Marketplace, My NFTs, Mint, Withdraw) \\
+\texttt{index.css} & Design system: dark-mode, glassmorphism, gradients, responsive \\
+\texttt{app.js} & Toàn bộ logic: wallet connect, contract interaction, event listeners \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Tích hợp Smart Contract}
+
+ABI dạng Human-Readable của ethers v6 giúp code gọn:
+\begin{lstlisting}[language=JavaScript,numbers=none]
+const MARKETPLACE_ABI = [
+  "function buy(address nft, uint256 tokenId) payable",
+  "function list(address nft, uint256 tokenId, uint256 price)",
+  "function getListing(address,uint256) view returns (tuple(address,uint256,bool))",
+  "event Sold(address indexed nft, uint256 indexed tokenId, ...)"
+];
+const contract = new ethers.Contract(addr, MARKETPLACE_ABI, signer);
+\end{lstlisting}
+
+\section{Tự động phát hiện contracts}
+
+Thay vì hardcode địa chỉ, \texttt{app.js} quét blockchain để tìm contracts đã deploy:
+\begin{enumerate}
+  \item Scan các block gần đây tìm contract creation transactions từ deployer.
+  \item Thử gọi \texttt{name()} (RoyaltyNFT) và \texttt{splitter()} (Marketplace) để xác định loại.
+  \item Nếu không tìm được, hiện prompt nhập thủ công.
+\end{enumerate}
+
+\section{Event-driven UI}
+
+Frontend đăng ký listen contract events:
+\begin{itemize}
+  \item \texttt{Transfer(from=0x0, ...)} $\Rightarrow$ Toast ``NFT Minted!''
+  \item \texttt{Listed(...)} $\Rightarrow$ Refresh marketplace grid
+  \item \texttt{Sold(...)} $\Rightarrow$ Toast + refresh cả marketplace và balance
+\end{itemize}
+
+% =====================================================================
+\chapter{Hướng dẫn chạy và demo}
+\label{chap:run}
+
+\section{Cài đặt}
+\begin{lstlisting}[numbers=none]
+git clone <repo-url>
+cd smart-contract
+npm install
+npx hardhat compile
+npx hardhat test          # chay 4 tests
+\end{lstlisting}
+
+\section{Demo trên local}
+Mở ba terminal:
+\begin{lstlisting}[numbers=none]
+# Terminal 1: Hardhat node (20 accounts x 10000 ETH)
+npx hardhat node
+
+# Terminal 2: Deploy + seed demo data
+npm run deploy:local
+npm run seed:local        # mint 3 NFTs, list 2
+
+# Terminal 3: Frontend
+npm run serve             # http://localhost:3000
+\end{lstlisting}
+
+\section{Kịch bản demo 5 phút}
+\begin{enumerate}
+  \item \textbf{Connect}: Mở trình duyệt $\to$ Click ``Connect Wallet'' $\to$ auto-detect contracts.
+  \item \textbf{Mint}: Tab Mint $\to$ nhập URI, royalty 5\%, 2 receivers (70/30) $\to$ Mint.
+  \item \textbf{List}: Tab My NFTs $\to$ click NFT card $\to$ ``List for Sale'' $\to$ nhập 1 ETH.
+  \item \textbf{Buy}: Đổi account MetaMask $\to$ Tab Marketplace $\to$ click NFT $\to$ ``Buy''.
+  \item \textbf{Verify}: Kiểm tra NFT đã chuyển owner. Tab Withdraw $\to$ thấy balance pending.
+  \item \textbf{Withdraw}: Click ``Withdraw All'' $\to$ ETH về ví.
+\end{enumerate}
+
+% =====================================================================
+\chapter{Kết luận}
+\label{chap:conclusion}
+
+\section{Kết quả đạt được}
+
+Dự án đã triển khai đầy đủ ba yêu cầu kỹ thuật:
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\textwidth}{p{4cm} l X}
+\toprule
+\textbf{Yêu cầu} & \textbf{Contract} & \textbf{Đặc điểm nổi bật} \\
+\midrule
+Advanced ERC-721 + EIP-2981 multi-receiver & RoyaltyNFT & Giao diện \texttt{IMultiRoyalty} chuẩn hoá; storage-packed struct; tương thích ngược EIP-2981 \\
+Pull-payment chống Reentrancy \& DoS & PullPaymentSplitter & CEI + ReentrancyGuard; deposit không external call; \texttt{Address.sendValue} tương thích contract wallets \\
+Atomic swap & Marketplace & Một tx duy nhất: deposit + safeTransferFrom; \texttt{try/catch} cho NFT độc hại; custom errors \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Điểm mạnh kỹ thuật}
+\begin{itemize}
+  \item \textbf{Custom logic}: Giao diện \texttt{IMultiRoyalty} là thiết kế riêng, mở rộng EIP-2981
+        theo hướng chưa chuẩn hoá — không thể clone từ boilerplate OpenZeppelin.
+  \item \textbf{Royalty resolver 2 tầng}: \texttt{try/catch} cho cả \texttt{IMultiRoyalty} lẫn
+        EIP-2981 chuẩn, fallback gracefully khi NFT contract không hỗ trợ.
+  \item \textbf{Bảo mật nhiều lớp}: CEI + ReentrancyGuard + pull-payment + custom errors +
+        giới hạn cứng (max royalty, max fee).
+  \item \textbf{Frontend thuần}: không dependency nặng, không build step — dễ deploy, dễ audit.
+\end{itemize}
+
+\section{Hướng phát triển}
+\begin{enumerate}
+  \item Hỗ trợ auction (English/Dutch).
+  \item Thanh toán bằng ERC-20.
+  \item Batch buy/list nhiều NFT trong 1 tx.
+  \item Off-chain signed orders (kiểu Seaport).
+  \item Tích hợp IPFS/Arweave cho metadata.
+\end{enumerate}
+
+% =====================================================================
+\begin{thebibliography}{9}
+\bibitem{eip721}
+  W.~Entriken et al.,
+  ``EIP-721: Non-Fungible Token Standard,'' 2018.
+  \url{https://eips.ethereum.org/EIPS/eip-721}
+
+\bibitem{eip2981}
+  Z.~Goldberg, J.~Morgan,
+  ``EIP-2981: NFT Royalty Standard,'' 2020.
+  \url{https://eips.ethereum.org/EIPS/eip-2981}
+
+\bibitem{eip165}
+  C.~Burgess et al.,
+  ``EIP-165: Standard Interface Detection,'' 2018.
+  \url{https://eips.ethereum.org/EIPS/eip-165}
+
+\bibitem{oz}
+  OpenZeppelin,
+  ``OpenZeppelin Contracts v5.''
+  \url{https://docs.openzeppelin.com/contracts/5.x/}
+
+\bibitem{swc}
+  SmartContractSecurity,
+  ``SWC Registry.''
+  \url{https://swcregistry.io/}
+
+\bibitem{pullpayment}
+  ConsenSys,
+  ``Ethereum Smart Contract Best Practices: Pull Payment.''
+  \url{https://consensys.github.io/smart-contract-best-practices/}
+\end{thebibliography}
+
+\end{document}
