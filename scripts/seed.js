@@ -5,8 +5,8 @@ async function main() {
   console.log("Seeder:", owner.address);
 
   // Get deployed contracts
-  const nftAddr = process.env.NFT_ADDRESS || "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
-  const marketAddr = process.env.MARKET_ADDRESS || "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9";
+  const nftAddr = process.env.NFT_ADDRESS || "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+  const marketAddr = process.env.MARKET_ADDRESS || "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 
   const nft = await hre.ethers.getContractAt("RoyaltyNFT", nftAddr);
   const market = await hre.ethers.getContractAt("Marketplace", marketAddr);
@@ -61,14 +61,24 @@ async function main() {
   const nftAddress = await nft.getAddress();
 
   // Approve + List NFT #1 at 0.5 ETH
-  await (await nft.approve(marketAddress, 1)).wait();
-  await (await market.list(nftAddress, 1, hre.ethers.parseEther("0.5"))).wait();
-  console.log("📋 NFT #1 listed at 0.5 ETH");
+  const listing1 = await market.getListing(nftAddress, 1);
+  if (!listing1.active) {
+    await (await nft.approve(marketAddress, 1)).wait();
+    await (await market.list(nftAddress, 1, hre.ethers.parseEther("0.5"))).wait();
+    console.log("📋 NFT #1 listed at 0.5 ETH");
+  } else {
+    console.log("📋 NFT #1 is already listed");
+  }
 
   // Approve + List NFT #2 at 1 ETH
-  await (await nft.approve(marketAddress, 2)).wait();
-  await (await market.list(nftAddress, 2, hre.ethers.parseEther("1"))).wait();
-  console.log("📋 NFT #2 listed at 1.0 ETH");
+  const listing2 = await market.getListing(nftAddress, 2);
+  if (!listing2.active) {
+    await (await nft.approve(marketAddress, 2)).wait();
+    await (await market.list(nftAddress, 2, hre.ethers.parseEther("1"))).wait();
+    console.log("📋 NFT #2 listed at 1.0 ETH");
+  } else {
+    console.log("📋 NFT #2 is already listed");
+  }
 
   console.log("\n✨ Seed complete! 3 NFTs minted, 2 listed.\n");
   console.log("Addresses:");

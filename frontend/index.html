@@ -23,10 +23,18 @@
           <li><a href="#" data-page="mint">Mint</a></li>
           <li><a href="#" data-page="withdraw">Withdraw</a></li>
         </ul>
-        <button class="btn-wallet" id="btn-connect-wallet" onclick="connectWallet()">
-          <span class="wallet-dot"></span>
-          <span id="wallet-label">Connect Wallet</span>
-        </button>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <select id="simulated-wallet-select" class="form-select" style="width: auto; padding: 6px 12px; height: 38px; border-radius: var(--radius-full); font-size: 0.8rem; background: var(--bg-secondary); border: 1px solid var(--border-subtle); color: var(--text-primary); cursor: pointer; display: none;" onchange="changeSimulatedWallet()">
+            <option value="">-- Real MetaMask --</option>
+            <option value="0">Demo: Seller (Acc 0)</option>
+            <option value="1">Demo: Collab A (Acc 1)</option>
+            <option value="2">Demo: Collab B (Acc 2)</option>
+          </select>
+          <button class="btn-wallet" id="btn-connect-wallet" onclick="connectWallet()">
+            <span class="wallet-dot"></span>
+            <span id="wallet-label">Connect Wallet</span>
+          </button>
+        </div>
       </div>
     </nav>
 

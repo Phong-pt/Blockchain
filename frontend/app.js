@@ -191,6 +191,8 @@ async function initContracts() {
   await updateStats();
   // Load pages
   await refreshMarketplace();
+  await refreshMyNFTs();
+  await refreshWithdrawBalance();
 
   // Show network
   try {
@@ -209,6 +211,19 @@ async function initContracts() {
 async function detectDeployedAddresses() {
   // First check if addresses are already set (user can set them manually)
   if (NFT_ADDRESS && MARKETPLACE_ADDRESS) return true;
+
+  try {
+    const network = await provider.getNetwork();
+    const chainId = Number(network.chainId);
+    if (chainId === CHAIN_ID_LOCALHOST) {
+      NFT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+      MARKETPLACE_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+      showToast("success", "Localhost Detected", "Using standard localhost addresses");
+      return true;
+    }
+  } catch (e) {
+    console.error("Error getting network:", e);
+  }
 
   // Try to prompt or auto-detect by scanning recent deploy events
   // For local dev, we attempt to read from well-known addresses or events
@@ -919,9 +934,61 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// ─── Simulated Wallet Mode ──────────────────────────────────
+const DEV_PRIVATE_KEYS = [
+  "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Account 0
+  "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", // Account 1
+  "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"  // Account 2
+];
+
+async function changeSimulatedWallet() {
+  const select = document.getElementById("simulated-wallet-select");
+  const val = select.value;
+  if (val === "") {
+    localStorage.removeItem("useSimulatedWallet");
+    localStorage.removeItem("simulatedWalletIndex");
+    window.location.reload();
+    return;
+  }
+
+  const idx = parseInt(val);
+  try {
+    provider = new ethers.JsonRpcProvider(LOCALHOST_RPC);
+    signer = new ethers.Wallet(DEV_PRIVATE_KEYS[idx], provider);
+    currentAccount = await signer.getAddress();
+    
+    localStorage.setItem("useSimulatedWallet", "true");
+    localStorage.setItem("simulatedWalletIndex", val);
+
+    updateWalletUI(currentAccount);
+    
+    const btn = document.getElementById("btn-connect-wallet");
+    btn.classList.add("connected");
+    btn.style.borderColor = "var(--warning)";
+    document.getElementById("wallet-label").textContent = "Demo Account " + idx;
+
+    await initContracts();
+    showToast("success", "Ví Giả Lập Kết Nối", "Tài khoản demo " + idx + " sẵn sàng.");
+  } catch (err) {
+    console.error(err);
+    showToast("error", "Simulated Connection Failed", err.message);
+  }
+}
+
 // ─── Auto-connect on load ───────────────────────────────────
 window.addEventListener("load", () => {
-  if (window.ethereum?.selectedAddress) {
+  const select = document.getElementById("simulated-wallet-select");
+  if (select) {
+    select.style.display = "block";
+  }
+
+  const useSimulated = localStorage.getItem("useSimulatedWallet");
+  const simIndex = localStorage.getItem("simulatedWalletIndex");
+
+  if (useSimulated === "true" && simIndex !== null && select) {
+    select.value = simIndex;
+    changeSimulatedWallet();
+  } else if (window.ethereum?.selectedAddress) {
     connectWallet();
   }
 });
